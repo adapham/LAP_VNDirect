@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+  <script src="js/sockjs-0.3.4.min.js"></script>
+  <script src="js/stomp.js"></script>
+  <script type="text/javascript">
+    var stompClient = null;
+    var name = getRequestParam("name")
+    function connect() {
+      let socket = new SockJS('/user');
+      stompClient = Stomp.over(socket);
+      stompClient.connect({},function (frame){
+        console.log('Connected:..... '+frame);
+        stompClient.subscribe('/topic/chat',function (message){
+          console.log(message);
+          let text = JSON.parse(message.body).content;
+          //document.getElementById('response').innerHTML = text;
+          showMessage(text);
+
+        });
+      });
+      loadGroups();
+      document.getElementById('name').innerHTML = name;
+      if (name != undefined){
+        loadinfoUser();
+      }
+    }
+    function save(){
+      let username = document.getElementById("username").value;
+      let password = document.getElementById("password").value;
+      let email = document.getElementById("email").value;
+      let age = document.getElementById("age").value;
+      let groupId = document.getElementById("groupId").value;
+      console.log("Sending......"+username);
+      stompClient.send("/app/user",{},JSON.stringify({
+        'username':username,
+        'password':password,
+        'email':email,
+        'age':age,
+        'groupId':groupId,
+        'con': getRequestParam('name')
+      }))
+    }
+
+    function showMessage(text){
+      let response = document.getElementById('response');
+      let p = document.createElement('p');
+      p.appendChild(document.createTextNode(text));
+      response.appendChild(p);
+    }
+    function loadGroups(){
+      let xmlhttp = new XMLHttpRequest();
+      xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE){
+          console.log(xmlhttp.responseText);
+          let groups = JSON.parse(xmlhttp.responseText);
+          let select = document.getElementById("groupId");
+          for (let index in groups){
+            let group = groups[index];
+            select.appendChild(createOptionGroup(group));
+          }
+        }
+      };
+      xmlhttp.open("GET", "/groups",true);
+      xmlhttp.send();
+    }
+    // function createOptionGroup(group){
+    //   let option = document.createElement("option");
+    //   option.appendChild(document.createTextNode(group.name));
+    //   let att = document.createAttribute("value");
+    //   att.value = group.id;
+    //   option.setAttributeNode(att);
+    //   return option;
+    // }
+    //
+    // function getRequestParam(name){
+    //   if(name=(new RegExp('[?&]'+encodeURIComponent(name)+'=([^&]*)')).exec(location.search))
+    //     return decodeURIComponent(name[1]);
+    // }
+
+    function loadinfoUser(){
+      let xmlhttp = new XMLHttpRequest();
+      xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE){
+          console.log(xmlhttp.responseText);
+          let user = JSON.parse(xmlhttp.responseText);
+          document.getElementById("username").value = user.username;
+          document.getElementById("password").value = user.password;
+          document.getElementById("email").value = user.email;
+          document.getElementById("age").value = user.age;
+          document.getElementById("groupId").value = user.groupId;
+          document.getElementById("username").readOnly = true;
+        }
+      };
+      xmlhttp.open("GET", "/user/get/"+name,true);
+      xmlhttp.send();
+    }
+
+
+
+  </script>
+</head>
+<body onload="connect();">
+<h1>Add User</h1>
+<form method="post" action="javascript:save();">
+  <p>Username: <input type="text" id="username" name="username"></p>
+  <p>Password: <input type="text" id="password" name="password"></p>
+
+  <p>Email: <input type="text" id="email" name="email"></p>
+  <p>Age: <input type="number" id="age" name="age"></p>
+
+  <p>Group: <select id="groupId" name="groupId"></select></p>
+
+  <p><input type="submit"  name="save" value="Save"></p>
+
+</form>
+<p id="name"></p>
+<p id="response"></p>
+</body>
+</html>

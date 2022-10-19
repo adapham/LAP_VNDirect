@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+    <class name="edu.hanoi.jazz.model.User" table="HN_USER">
+        <meta attribute="class-description">
+            mapping User class to table HN_USEr
+        </meta>
+        <id name="username" type="string" column="username"/>
+        <property name="password" column="password" type="string"/>
+        <property name="email" column="email" type="string"/>
+        <property name="age" column="age" type="int"/>
+        <property name="groupId" column="groupId" type="int"/>
+
+        <many-to-one name="group" column="groupId" class="edu.hanoi.jazz.model.Group"
+                     not-null="true" lazy="false" insert="false" update="false"/>
+    </class>
+</hibernate-mapping>

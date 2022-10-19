@@ -1,0 +1,139 @@
+<html>
+<head>
+  <title>Title</title>
+  <script src="js/sockjs-0.3.4.min.js"></script>
+  <script src="js/stomp.js"></script>
+  <script type="text/javascript">
+
+    var stompClient = null;
+    function connect() {
+      let socket = new SockJS('/message');
+      stompClient = Stomp.over(socket);
+      stompClient.connect({},function (frame){
+        console.log('Connected:..... '+frame);
+        stompClient.subscribe('/topic/chat',function (message){
+          console.log(message);
+          let text = JSON.parse(message.body).content;
+          //document.getElementById('response').innerHTML = text;
+          showMessage(text);
+
+        });
+      });
+      loadGroups();
+      loadtableuser();
+    }
+
+    function showMessage(text){
+      let response = document.getElementById('response');
+      let p = document.createElement('p');
+      p.appendChild(document.createTextNode(text));
+      response.appendChild(p);
+    }
+    function loadGroups(){
+      let xmlhttp = new XMLHttpRequest();
+
+      xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE){
+          console.log(xmlhttp.responseText);
+          let groups = JSON.parse(xmlhttp.responseText);
+          console.log(groups);
+          let select = document.getElementById("groupId");
+          for (let index in groups){
+            let group = groups[index];
+            select.appendChild(createOptionGroup(group));
+          }
+        }
+      };
+      console.log(1);
+      xmlhttp.open("GET", "/groups",true);
+      console.log(2);
+      xmlhttp.send();
+      console.log(xmlhttp.responseText);
+    }
+    function createOptionGroup(group){
+      let option = document.createElement("option");
+      option.appendChild(document.createTextNode(group.name));
+      let att = document.createAttribute("value");
+      att.value = group.id;
+      option.setAttributeNode(att);
+      return option;
+    }
+
+    function loadtableuser() {
+      let xmlhttp = new XMLHttpRequest();
+      xmlhttp.open("GET", "/user/list",true);
+      xmlhttp.send();
+      xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE){
+          // console.log(xmlhttp.responseText);
+          let users = JSON.parse(xmlhttp.responseText);
+          let data = document.getElementById("listuser");
+          let usersstr = ``;
+          for (let index in users){
+            let user = createRowUser(users[index]);
+            usersstr = usersstr+user;
+          }
+          data.innerHTML = usersstr;
+        }
+      };
+
+    }
+    function createRowUser(user){
+      let userstr = `<tr>
+      <td>${user.username}</td>
+      <td>${user.password}</td>
+      <td>${user.email}</td>
+      <td>${user.age}</td>
+      <td>${user.groupId}</td>
+      <td>
+        <button><a href="/user.html?name=${user.username}">update</a></button>
+        <button onclick="deleteUser('${user.username}')" style="text-underline: blue ;color: blue" >delete</button>
+<!--        <a href="/account/detail/${user.username}">detail</a>-->
+      </td>
+    </tr>`
+      return userstr
+    }
+
+    function deleteUser(username){
+      if(confirm("Do you want to delete user "+username+" ????")){
+        stompClient.send("/app/user/delete",{},JSON.stringify({
+          "content":username
+        }))
+        loadtableuser();
+      }
+    }
+
+  </script>
+</head>
+<body onload="connect();">
+
+<h1>User list</h1>
+<a href="user.html">ADD USER</a>
+<table style="width: 100%">
+  <tr>
+    <td>Username</td>
+    <td>Password</td>
+    <td>Email</td>
+    <td>Age</td>
+    <td>Group</td>
+    <td>Action</td>
+  </tr>
+  <tbody id="listuser">
+    <tr>
+      <td>${item.username}</td>
+      <td>${item.password}</td>
+      <td>${item.email}</td>
+      <td>${item.age}</td>
+      <td>${item.groupId}</td>
+      <td>
+        <a href="">update</a>
+        <a href="/account/delete/${item.username}">delete</a>
+        <a href="/account/detail/${item.username}">detail</a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p id="response"></p>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+						http://www.springframework.org/schema/context
+						http://www.springframework.org/schema/context/spring-context-4.2.xsd
+						http://www.springframework.org/schema/mvc
+ 						http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+						http://www.springframework.org/schema/security
+						http://www.springframework.org/schema/security/spring-security.xsd
+						http://www.springframework.org/schema/jdbc
+						http://www.springframework.org/schema/jdbc/spring-jdbc-4.2.xsd">
+
+    <security:http auto-config="true">
+        <security:intercept-url pattern="/dang-nhap" access="permitAll()"/>
+        <security:intercept-url pattern="//auth**" access="permitAll()"/>
+        <security:intercept-url pattern="/nguoi-dung/**" access="hasRole('ROLE_USER')"/>
+        <security:form-login login-page="/dang-nhap" username-parameter="username"
+                             login-processing-url="/j_spring_security_check"
+                             password-parameter="password"
+                             default-target-url="/nguoi-dung"
+                             authentication-failure-url="/dang-nhap?error=1"
+
+        />
+        <security:logout logout-url="/j_spring_security_logout" logout-success-url="/"/>
+    <security:custom-filter ref="socialAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+
+    </security:http>
+
+
+    <bean id="socialAuthenticationFilter" class="org.springframework.social.security.SocialAuthenticationFilter">
+        <constructor-arg name="authManager" ref="authenticationManager"/>
+        <constructor-arg name="userIdSource" ref="userIdSource"/>
+        <constructor-arg name="usersConnectionRepository" ref="inMemoryUsersConnectionRepository"/>
+        <constructor-arg name="authServiceLocator" ref="connectionFactoryLocator"/>
+    </bean>
+    <security:authentication-manager alias="authenticationManager">
+        <security:authentication-provider ref="userAuthProvider"/>
+        <security:authentication-provider ref="socialAuthenticationProvider"/>
+    </security:authentication-manager>
+
+    <bean id="socialAuthenticationProvider" class="org.springframework.social.security.SocialAuthenticationProvider">
+        <constructor-arg ref="inMemoryUsersConnectionRepository"/>
+        <constructor-arg ref="socialUserDetailService"/>
+    </bean>
+    <bean id="inMemoryUsersConnectionRepository"
+          class="org.springframework.social.connect.mem.InMemoryUsersConnectionRepository">
+        <constructor-arg name="connectionFactoryLocator" ref="connectionFactoryLocator"/>
+        <property name="connectionSignUp" ref="connectionSignUp"/>
+    </bean>
+    <bean id="connectionFactoryLocator" class="edu.hanoi.jazz.service.JazzSocialAuthServiceRegistry">
+        <constructor-arg>
+            <list>
+<!--                <ref bean="facebookAuthenticationService"/>-->
+                <ref bean="googleAuthenticationService"/>
+            </list>
+        </constructor-arg>
+    </bean>
+<!--    <bean id="facebookAuthenticationService"-->
+<!--          class="org.springframework.social.facebook.security.FacebookAuthenticationService">-->
+<!--            <constructor-arg name="apiKey" value="1817520818585707"/>-->
+<!--            <constructor-arg name="appSecret" value="53c2cdbcaa65ac24cf1a6c71fe646668"/>-->
+<!--    </bean>-->
+    <bean id="googleAuthenticationService"
+          class="org.springframework.social.google.security.GoogleAuthenticationService">
+        <constructor-arg name="apiKey" value="249942731304-mi800njbss15vldn2rhtrpisghbmnfst.apps.googleusercontent.com"/>
+        <constructor-arg name="appSecret" value="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"/>
+    </bean>
+    <bean id="connectionSignUp" class="edu.hanoi.jazz.service.JazzConnectionSignUp"/>
+    <bean id="userIdSource" class="org.springframework.social.security.AuthenticationNameUserIdSource"/>
+    <bean id="textEncryptor" class="org.springframework.security.crypto.encrypt.Encryptors" factory-method="noOpText" />
+    <security:global-method-security pre-post-annotations="enabled"/>
+    <bean
+            class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="order" value="1"/>
+        <property name="prefix" value="/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <bean id="tilesViewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+        <property name="order" value="3"/>
+        <property name="viewClass" value="org.springframework.web.servlet.view.tiles3.TilesView"/>
+    </bean>
+
+    <bean id="tilesConfigurer" class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+        <property name="definitions">
+            <list>
+                <value>/tiles/definitions.xml</value>
+            </list>
+        </property>
+    </bean>
+
+
+    <!--    DataSource-->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+        <property name="url" value="jdbc:derby:C:/Users/Snail/Documents/Lap/LabSpringboot2/Do/spring-jazz/db/userdb1;create=true"/>
+        <property name="username" value=""/>
+        <property name="password" value=""/>
+
+    </bean>
+
+    <bean id="startEventHandler" class="edu.hanoi.jazz.ContextStartEventHandler"/>
+
+    <!--    SessionFactory-->
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.DerbyDialect</prop>
+                <prop key="hibernate.show_sql">true</prop>
+            </props>
+        </property>
+        <property name="packagesToScan" value="edu.hanoi.jazz.dao.model"/>
+        <property name="mappingLocations">
+            <list>
+                <value>classpath:User.xml</value>
+            </list>
+        </property>
+    </bean>
+
+
+
+</beans>
